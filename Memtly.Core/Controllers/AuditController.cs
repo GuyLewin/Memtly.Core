@@ -30,7 +30,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             IEnumerable<AuditLogModel>? result = null;

@@ -51,7 +51,7 @@ namespace Memtly.Core.Attributes
                                     queryString.Set("enc", "true");
                                     queryString.Set("key", encryptionHelper.Encrypt(key));
 
-                                    filterContext.Result = new RedirectResult($"/Gallery?{queryString.ToString()}");
+                                    filterContext.Result = new RedirectResult($"{filterContext.HttpContext.Request.PathBase}/Gallery?{queryString.ToString()}");
                                 }
                                 else if (!string.IsNullOrWhiteSpace(gallery.SecretKey))
                                 {
@@ -71,7 +71,7 @@ namespace Memtly.Core.Attributes
                                     }
                                     else
                                     {
-                                        filterContext.Result = new RedirectResult($"/Gallery/Login?identifier={gallery.Identifier}");
+                                        filterContext.Result = new RedirectResult($"{filterContext.HttpContext.Request.PathBase}/Gallery/Login?identifier={gallery.Identifier}");
                                     }
                                 }
                             }

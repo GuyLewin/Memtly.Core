@@ -571,7 +571,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             { 
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var model = new IndexModel()
@@ -680,7 +680,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var result = new GalleriesModel();
@@ -724,7 +724,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var result = new ReviewsModel();
@@ -760,7 +760,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var result = new UsersModel();
@@ -796,7 +796,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var result = new ResourcesModel();
@@ -832,7 +832,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var model = new Views.Account.Partials.SettingsListModel();
@@ -864,7 +864,7 @@ namespace Memtly.Core.Controllers
         {
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return Redirect("/");
+                return Redirect($"{Request.PathBase}/");
             }
 
             var model = new Views.Account.Settings.Gallery.GalleryOverridesModel()
