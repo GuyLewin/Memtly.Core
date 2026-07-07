@@ -1,4 +1,5 @@
-﻿import { displayMessage } from '@modules/message-box';
+﻿import { resolveUrl } from '@modules/base-path';
+import { displayMessage } from '@modules/message-box';
 import { displayLoader, hideLoader } from '@modules/loader';
 
 function init() {
@@ -46,7 +47,7 @@ function bindPasswordResetForm() {
                 if (data.success === true && data.username) {
                     displayMessage(localization.translate('PasswordReset'), localization.translate('PasswordReset_Success'), null, function () {
                         if (data.mfa) {
-                            window.location = `/Account/Login`;
+                            window.location = resolveUrl(`/Account/Login`);
                         } else {
                             displayLoader(localization.translate('Loading'));
                             $.ajax({
@@ -58,7 +59,7 @@ function bindPasswordResetForm() {
                                     hideLoader();
 
                                     if (data.success === true) {
-                                        window.location = `/Account`;
+                                        window.location = resolveUrl(`/Account`);
                                     } else if (data.message) {
                                         displayMessage(localization.translate('PasswordReset'), localization.translate('Login_Failed'), [data.message]);
                                     } else {

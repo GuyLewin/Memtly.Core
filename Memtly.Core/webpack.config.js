@@ -31,7 +31,13 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'wwwroot/dist'),
         filename: '[name].[contenthash:8].js',
-        publicPath: '/_content/Memtly.Core/dist/',
+        // 'auto' makes the webpack runtime derive its public path from the URL the
+        // bundle was actually loaded from, so lazy chunks and CSS url() assets (fonts,
+        // images) resolve correctly even when the app is served under a reverse-proxy
+        // sub-path. The initial <script>/<link> tags are emitted by Razor via the
+        // manifest (which keeps its absolute publicPath below) and prefixed with the
+        // request PathBase, so they load the bundle from the right place to begin with.
+        publicPath: 'auto',
         clean: {
             keep: /fonts\/|images\//
         }

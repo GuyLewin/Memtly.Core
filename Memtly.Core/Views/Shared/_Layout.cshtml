@@ -11,7 +11,9 @@
 
     var forceHttps = await _settings.GetOrDefault(MemtlyConfiguration.Basic.ForceHttps, true);
     var title = await _settings.GetOrDefault(MemtlyConfiguration.Basic.Title, "Memtly", galleryId);
-    var siteUrl = $"{(forceHttps ? "https" : Context.Request.Scheme)}://{Context!.Request.Host}";
+    var siteUrl = $"{(forceHttps ? "https" : Context.Request.Scheme)}://{Context!.Request.Host}{Context!.Request.PathBase}";
+    // Resolves a webpack asset through the request PathBase so it works under a reverse-proxy sub-path.
+    Func<string, string> asset = name => Url.Content("~" + WebpackHelper.GetAssetPath(name));
     var isDemoMode = await _settings.GetOrDefault(MemtlyConfiguration.IsDemoMode, false);
 
     var logo = "/images/logo.png";
@@ -23,6 +25,9 @@
     {
         logo = "/images/logo.png";
     }
+
+    // Apply PathBase to root-relative logo paths (leave absolute URLs untouched).
+    if (!string.IsNullOrEmpty(logo) && logo.StartsWith("/")) { logo = Url.Content("~" + logo); }
 
     var viewMode = ViewBag?.ViewMode != null ? ViewBag.ViewMode : ViewMode.Default;
 
@@ -81,6 +86,7 @@
 <html lang="en">
     <head>
         <title>@title</title>
+        <script>window.MemtlyPathBase = "@Context.Request.PathBase.Value";</script>
         <link rel="icon" type="image/png" href="@logo" />
         <link rel="canonical" href="@siteUrl">
 
@@ -103,36 +109,36 @@
             }
         </script>
 
-        <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("main.css")" asp-append-version="true" />
+        <link rel="stylesheet" href="@asset("main.css")" asp-append-version="true" />
         @if (theme.Equals(Themes.AutoDetect.ToString().ToLower(), StringComparison.OrdinalIgnoreCase))
         {
             if (MemtlyCore.Version == MemtlyVersion.Community)
             {
-                <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("themes/blue.css")" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)" asp-append-version="true" />
-                <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("themes/darkblue.css")" media="(prefers-color-scheme: dark)" asp-append-version="true" />
+                <link rel="stylesheet" href="@asset("themes/blue.css")" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)" asp-append-version="true" />
+                <link rel="stylesheet" href="@asset("themes/darkblue.css")" media="(prefers-color-scheme: dark)" asp-append-version="true" />
             }
             else
             {
-                <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("themes/green.css")" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)" asp-append-version="true" />
-                <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("themes/darkgreen.css")" media="(prefers-color-scheme: dark)" asp-append-version="true" />
+                <link rel="stylesheet" href="@asset("themes/green.css")" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)" asp-append-version="true" />
+                <link rel="stylesheet" href="@asset("themes/darkgreen.css")" media="(prefers-color-scheme: dark)" asp-append-version="true" />
             }
         }
         else if (theme.Equals(Themes.Custom.ToString().ToLower(), StringComparison.OrdinalIgnoreCase))
         {
-            <link rel="stylesheet" href="@WebpackHelper.GetAssetPath("themes/blue.css")" asp-append-version="true" />
+            <link rel="stylesheet" href="@asset("themes/blue.css")" asp-append-version="true" />
             <partial name="~/Views/Shared/_CustomThemeOverrides.cshtml" />
         }
         else
         {
-            <link rel="stylesheet" href="@WebpackHelper.GetAssetPath($"themes/{theme}.css")" asp-append-version="true" />
+            <link rel="stylesheet" href="@asset($"themes/{theme}.css")" asp-append-version="true" />
         }
     </head>
     <body data-theme="@theme" data-identity-check="@identityCheck.ToString().ToLower()">
         <!-- Navigation -->
         <nav class="navbar navbar-expand-lg">
             <div class="container px-3 px-lg-5 @(viewMode == ViewMode.Presentation || viewMode == ViewMode.Slideshow ? "justify-content-center" : string.Empty)">
-                <a class="navbar-brand" href="@(await _settings.GetOrDefault(MemtlyConfiguration.Basic.HomeLink, true) ? "/" : "#")">
-                    <img class="navbar-logo" src="@logo" onerror="this.onerror=null;this.src='/_content/Memtly.Core/images/logo.png';" />
+                <a class="navbar-brand" href="@(await _settings.GetOrDefault(MemtlyConfiguration.Basic.HomeLink, true) ? Url.Content("~/") : "#")">
+                    <img class="navbar-logo" src="@logo" onerror="this.onerror=null;this.src='@Url.Content("~/_content/Memtly.Core/images/logo.png")';" />
                     <span class="navbar-title">@title</span>
                 </a>
                 
@@ -240,8 +246,8 @@
                         <a class="text-link" href="@_config.GetConfigValue(MemtlyStaticConfiguration.Links.GitHub)" title="Copyright Memtly" target="_blank"><i class="fa-brands fa-github"></i> v@(_settings.GetReleaseVersion(4)) &copy; Memtly @DateTime.UtcNow.Year</a>
                     </span>
                     <span class="float-end">
-                        <a class="text-link" href="@_config.GetConfigValue(MemtlyStaticConfiguration.Links.GitHubSponsors)" title="GitHub Sponsors" target="_blank"><img class="fa-sponsor-badge" src="/_content/Memtly.Core/images/github.png" /></a>
-                        <a class="text-link" href="@_config.GetConfigValue(MemtlyStaticConfiguration.Links.BuyMeACoffee)" title="BuyMeACoffee" target="_blank"><img class="fa-sponsor-badge" src="/_content/Memtly.Core/images/buymeacoffee.gif" /></a>
+                        <a class="text-link" href="@_config.GetConfigValue(MemtlyStaticConfiguration.Links.GitHubSponsors)" title="GitHub Sponsors" target="_blank"><img class="fa-sponsor-badge" src="@Url.Content("~/_content/Memtly.Core/images/github.png")" /></a>
+                        <a class="text-link" href="@_config.GetConfigValue(MemtlyStaticConfiguration.Links.BuyMeACoffee)" title="BuyMeACoffee" target="_blank"><img class="fa-sponsor-badge" src="@Url.Content("~/_content/Memtly.Core/images/buymeacoffee.gif")" /></a>
                     </span>
                 </p>
             </div>
@@ -257,8 +263,8 @@
         }
         
         <!-- Webpack -->
-        <script src="@WebpackHelper.GetAssetPath("runtime.js")" asp-append-version="true"></script>
-        <script src="@WebpackHelper.GetAssetPath("main.js")" asp-append-version="true"></script>
+        <script src="@asset("runtime.js")" asp-append-version="true"></script>
+        <script src="@asset("main.js")" asp-append-version="true"></script>
 
         @await RenderSectionAsync("Scripts", required: false)
 

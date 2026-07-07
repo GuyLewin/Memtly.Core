@@ -1,4 +1,5 @@
 ﻿import { default as initMultiFactorAuth } from '@modules/multifactor-auth';
+import { resolveUrl } from '@modules/base-path';
 
 let accountStateCheckInterval = null;
 
@@ -59,7 +60,7 @@ function selectActiveTab(tab) {
         tab = getDefaultTab()();
     }
 
-    window.location = `/Account?tab=${tab}`;
+    window.location = resolveUrl(`/Account?tab=${tab}`);
 }
 
 function checkAccountState() {
@@ -69,7 +70,7 @@ function checkAccountState() {
     })
         .done(data => {
             if (data.active !== true) {
-                location.href = '/Account/Logout';
+                location.href = resolveUrl('/Account/Logout');
             }
         });
 }

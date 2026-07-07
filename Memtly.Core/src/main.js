@@ -8,6 +8,7 @@ import 'jquery-qrcode';
 import 'jquery-validation';
 import 'jquery-validation-unobtrusive';
 
+import { initBasePath, stripBasePath } from '@modules/base-path';
 import { Localization } from '@modules/localization';
 import initGdpr from '@modules/gdpr';
 import { default as initThemes, getSelectedTheme } from '@themes';
@@ -27,6 +28,9 @@ const app = {
 
 async function init() {
     if (app.initialized) return;
+
+    // Must run before any AJAX/fetch so sub-path hosting is honoured everywhere.
+    initBasePath();
 
     resizeLayout();
     bindEventHandlers();
@@ -49,7 +53,7 @@ async function init() {
 }
 
 function initPage() {
-    const path = window.location.pathname.toLowerCase();
+    const path = stripBasePath(window.location.pathname).toLowerCase();
     if (path === '/') {
         import('@pages/homepage').then(({ default: init }) => { init(); });
     } else if (path.startsWith('/gallery')) {

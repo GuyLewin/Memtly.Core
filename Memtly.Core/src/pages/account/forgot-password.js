@@ -1,4 +1,5 @@
-﻿import { displayMessage } from '@modules/message-box';
+﻿import { resolveUrl } from '@modules/base-path';
+import { displayMessage } from '@modules/message-box';
 import { displayLoader, hideLoader } from '@modules/loader';
 
 function init() {
@@ -35,7 +36,7 @@ function bindForgotPasswordForm() {
                     displayMessage(localization.translate('ForgotPassword'), localization.translate('ForgotPassword_Failed'), [data.message]);
                 } else {
                     displayMessage(localization.translate('ForgotPassword'), localization.translate('ForgotPassword_Sent'), null, function () {
-                        window.location = `/Account/Login`;
+                        window.location = resolveUrl(`/Account/Login`);
                     });
                 }
             })

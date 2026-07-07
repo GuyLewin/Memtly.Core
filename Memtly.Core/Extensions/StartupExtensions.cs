@@ -109,7 +109,32 @@ namespace Memtly.Core.Extensions
             var logger = app.ApplicationServices.GetRequiredService<ILogger<MemtlyCore>>();
 
             logger.LogInformation($"Release Version - '{settings.GetReleaseVersion(4)}'");
-            
+
+            // Support hosting behind a reverse proxy under a sub-path (e.g. https://host/gallery1).
+            // The proxy forwards the original prefix in the standard X-Forwarded-Prefix header; we
+            // apply it as the request PathBase so every generated URL (links, redirects, assets,
+            // antiforgery form actions) transparently includes it. No-op when the header is absent,
+            // so default root hosting is unaffected.
+            app.Use((context, next) =>
+            {
+                var forwardedPrefix = context.Request.Headers["X-Forwarded-Prefix"].ToString();
+                if (!string.IsNullOrWhiteSpace(forwardedPrefix))
+                {
+                    var prefix = "/" + forwardedPrefix.Trim().Trim('/');
+                    if (prefix.Length > 1)
+                    {
+                        context.Request.PathBase = new PathString(prefix);
+                        // If the proxy forwarded the full path (didn't strip the prefix), strip it here
+                        // so routing matches. Guarded, so a proxy that already strips is handled too.
+                        if (context.Request.Path.StartsWithSegments(prefix, out var remaining))
+                        {
+                            context.Request.Path = remaining;
+                        }
+                    }
+                }
+                return next();
+            });
+
             app.UseExceptionHandler();
 
             if (!env.IsDevelopment())

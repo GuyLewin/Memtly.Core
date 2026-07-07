@@ -35,7 +35,9 @@ namespace Memtly.Core.Helpers
                 var scheme = _settings.GetOrDefault(MemtlyConfiguration.Basic.ForceHttps, true).Result ? "https" : ctx.Scheme;
                 var host = ExtractHost(_settings.GetOrDefault(MemtlyConfiguration.Basic.BaseUrl, ctx.Host.Value).Result);
 
-                return $"{scheme}://{host}/{path?.TrimStart('/')}";
+                // Include the request PathBase so generated links (gallery redirects, QR/share
+                // links) stay correct when hosted behind a reverse-proxy sub-path. Empty at root.
+                return $"{scheme}://{host}{ctx.PathBase}/{path?.TrimStart('/')}";
             }
 
             return string.Empty;

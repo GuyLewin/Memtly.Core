@@ -1,4 +1,5 @@
-﻿import { displayMessage } from '@modules/message-box';
+﻿import { resolveUrl } from '@modules/base-path';
+import { displayMessage } from '@modules/message-box';
 import { displayLoader, hideLoader } from '@modules/loader';
 import { initPasswordValidation } from '@validation/password-validation';
 
@@ -66,7 +67,7 @@ function bindRegistrationForm() {
                 if (data.success === true) {
                     if (data.validation === true) {
                         displayMessage(localization.translate('Registration'), localization.translate('Registration_Success_Validation'), null, function () {
-                            window.location = `/Account`;
+                            window.location = resolveUrl(`/Account`);
                         });
                     } else {
                         displayMessage(localization.translate('Registration'), localization.translate('Registration_Success'), null, function () {
@@ -80,7 +81,7 @@ function bindRegistrationForm() {
                                     hideLoader();
 
                                     if (data.success === true) {
-                                        window.location = `/Account`;
+                                        window.location = resolveUrl(`/Account`);
                                     } else if (data.message) {
                                         displayMessage(localization.translate('Registration'), localization.translate('Login_Failed'), [data.message]);
                                     } else {
