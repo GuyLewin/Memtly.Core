@@ -5,6 +5,7 @@
 @{
     var userPermissions = User?.Identity?.GetUserPermissions() ?? new Permissions();
     var qrCodeEnabled = await _settings.GetOrDefault(MemtlyConfiguration.Gallery.QRCode.Enabled, true, Model?.Gallery?.Id);
+    var showFilters = await _settings.GetOrDefault(MemtlyConfiguration.Gallery.ShowFilters, true, Model?.Gallery?.Id);
     var excludeFromUrls = new List<string>() { "partial" };
 }
 
@@ -50,13 +51,16 @@
                 }
             }
 
-            <div class="btn-group w-100 mb-2">
-                <button class="btnCopyShareLink btn btn-primary-2 btn-sm" type="button" data-share-link="@Html.Raw(ViewBag.QRCodeLink)">
-                    @_localizer["Share"].Value
-                </button>
-            </div>
+            @if (showFilters)
+            {
+                <div class="btn-group w-100 mb-2">
+                    <button class="btnCopyShareLink btn btn-primary-2 btn-sm" type="button" data-share-link="@Html.Raw(ViewBag.QRCodeLink)">
+                        @_localizer["Share"].Value
+                    </button>
+                </div>
+            }
 
-            @if (await _settings.GetOrDefault(MemtlyConfiguration.Gallery.ShowFilters, true, Model?.Gallery?.Id))
+            @if (showFilters)
             {
                 @if (qrCodeEnabled)
                 {
