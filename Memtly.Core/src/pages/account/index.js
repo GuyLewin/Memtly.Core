@@ -1,5 +1,7 @@
-﻿function init() {
-    const path = window.location.pathname.toLowerCase();
+﻿import { stripBasePath } from '@modules/base-path';
+
+function init() {
+    const path = stripBasePath(window.location.pathname).toLowerCase();
     if (path == '/account') {
         import('@pages/account/admin-panel').then(({ default: init }) => { init(); });
     } else if (path.startsWith('/account/login')) {
