@@ -8,7 +8,7 @@
     queryString.Remove("partial");
     queryString.Remove("Partial");
 
-    var pageUrl = $"/{Context.Request.Path.ToString()?.TrimStart('/')?.TrimEnd('?')}?{queryString.ToString()?.TrimStart('?')}";
+    var pageUrl = $"{Context.Request.PathBase}/{Context.Request.Path.ToString()?.TrimStart('/')?.TrimEnd('?')}?{queryString.ToString()?.TrimStart('?')}";
 }
 
 @if (Model.LastPage > 1)
