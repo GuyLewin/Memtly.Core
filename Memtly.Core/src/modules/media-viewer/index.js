@@ -77,11 +77,24 @@ class MediaViewer {
     }
 
     bindLoadEvent() {
-        $('.media-viewer-image').on('load', (e) => {
-            const element = $(e.currentTarget).closest('.media-viewer');
-            const type = element.data('type');
-            const source = element.data('source');
-            this.initMediaViewImage(type, source);
+        $('.media-viewer-image').each((_, el) => {
+            const img = $(el);
+            const trigger = () => {
+                const element = img.closest('.media-viewer');
+                const type = element.data('type');
+                const source = element.data('source');
+                this.initMediaViewImage(type, source);
+            };
+
+            // 'load' only fires for images that finish loading *after* this handler is
+            // attached. A cached/already-complete image, or a missing thumbnail that
+            // errors, would otherwise leave the viewer stuck at opacity 0 (and never
+            // build the <video> for videos), so handle those cases explicitly.
+            img.on('load', trigger);
+            img.on('error', trigger);
+            if (el.complete) {
+                trigger();
+            }
         });
     }
 
@@ -325,9 +338,11 @@ class MediaViewer {
             if (type === 'video') {
                 let width = $('.media-viewer-content img').innerWidth();
                 let height = $('.media-viewer-content img').innerHeight();
+                // No hardcoded type: guest videos are often .mov (video/quicktime) as
+                // well as .mp4, so let the browser sniff the container/codecs instead of
+                // refusing a mislabelled source.
                 $('.media-viewer-content').html(`
-                <video width="${width}" height="${height}" controls autoplay>
-                    <source src="${source}" type="video/mp4">
+                <video width="${width}" height="${height}" src="${source}" controls autoplay>
                     ${localization.translate('Browser_Does_Not_Support')}
                 </video>
             `);

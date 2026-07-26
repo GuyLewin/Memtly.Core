@@ -1,4 +1,5 @@
-﻿using Memtly.Core.Enums;
+﻿using System.Diagnostics;
+using Memtly.Core.Enums;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Microsoft.AspNetCore.StaticFiles;
@@ -27,6 +28,7 @@ namespace Memtly.Core.Helpers
         private readonly IStringLocalizer<Localization.Translations> _localizer;
 
         private static bool FfmpegInstalled = false;
+        private static string? FfmpegDirectory = null;
 
         public ImageHelper(IFileHelper fileHelper, ILogger<ImageHelper> logger, IStringLocalizer<Localization.Translations> localizer)
         {
@@ -45,51 +47,63 @@ namespace Memtly.Core.Helpers
                     if (mediaType == MediaType.Image || mediaType == MediaType.Video)
                     {
                         var filename = Path.GetFileName(filePath);
+                        string? tempFrame = null;
 
                         if (mediaType == MediaType.Video)
                         {
-                            if (FfmpegInstalled == false)
+                            // Xabe.FFmpeg's executable discovery is unreliable on some platforms
+                            // (it fails to validate a present, working ffmpeg), so shell out to
+                            // ffmpeg directly to grab the first frame as a PNG that ImageSharp
+                            // can then resize into the thumbnail.
+                            tempFrame = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.png");
+                            if (!await ExtractVideoFrame(filePath, tempFrame))
                             {
-                                _logger.LogWarning(_localizer["FFMPEG_Downloading"].Value);
                                 return false;
                             }
-
-                            var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(filePath, savePath, TimeSpan.FromSeconds(0));
-                            await conversion.Start();
-                            filePath = savePath;
+                            filePath = tempFrame;
                         }
 
-                        using (var img = await Image.LoadAsync(filePath))
+                        try
                         {
-                            var width = 0;
-                            var height = 0;
+                            using (var img = await Image.LoadAsync(filePath))
+                            {
+                                var width = 0;
+                                var height = 0;
 
-                            var orientation = this.GetOrientation(img);
-                            if (orientation == ImageOrientation.Square)
-                            {
-                                width = size;
-                                height = size;
-                            }
-                            else if (orientation == ImageOrientation.Landscape)
-                            {
-                                var scale = (decimal)size / (decimal)img.Width;
-                                width = (int)((decimal)img.Width * scale);
-                                height = (int)((decimal)img.Height * scale);
-                            }
-                            else if (orientation == ImageOrientation.Portrait)
-                            {
-                                var scale = (decimal)size / (decimal)img.Height;
-                                width = (int)((decimal)img.Width * scale);
-                                height = (int)((decimal)img.Height * scale);
-                            }
+                                var orientation = this.GetOrientation(img);
+                                if (orientation == ImageOrientation.Square)
+                                {
+                                    width = size;
+                                    height = size;
+                                }
+                                else if (orientation == ImageOrientation.Landscape)
+                                {
+                                    var scale = (decimal)size / (decimal)img.Width;
+                                    width = (int)((decimal)img.Width * scale);
+                                    height = (int)((decimal)img.Height * scale);
+                                }
+                                else if (orientation == ImageOrientation.Portrait)
+                                {
+                                    var scale = (decimal)size / (decimal)img.Height;
+                                    width = (int)((decimal)img.Width * scale);
+                                    height = (int)((decimal)img.Height * scale);
+                                }
 
-                            img.Mutate(x =>
-                            {
-                                x.Resize(width, height);
-                                x.AutoOrient();
-                            });
+                                img.Mutate(x =>
+                                {
+                                    x.Resize(width, height);
+                                    x.AutoOrient();
+                                });
 
-                            await img.SaveAsWebpAsync(savePath);
+                                await img.SaveAsWebpAsync(savePath);
+                            }
+                        }
+                        finally
+                        {
+                            if (tempFrame != null)
+                            {
+                                _fileHelper.DeleteFileIfExists(tempFrame);
+                            }
                         }
                     }
 
@@ -102,6 +116,55 @@ namespace Memtly.Core.Helpers
             }
 
             return false;
+        }
+
+        private async Task<bool> ExtractVideoFrame(string videoPath, string savePath)
+        {
+            try
+            {
+                var ffmpeg = string.IsNullOrWhiteSpace(FfmpegDirectory) ? "ffmpeg" : Path.Combine(FfmpegDirectory, "ffmpeg");
+                var psi = new ProcessStartInfo
+                {
+                    FileName = ffmpeg,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                psi.ArgumentList.Add("-y");
+                psi.ArgumentList.Add("-ss");
+                psi.ArgumentList.Add("0");
+                psi.ArgumentList.Add("-i");
+                psi.ArgumentList.Add(videoPath);
+                psi.ArgumentList.Add("-frames:v");
+                psi.ArgumentList.Add("1");
+                psi.ArgumentList.Add(savePath);
+
+                using (var process = Process.Start(psi))
+                {
+                    if (process == null)
+                    {
+                        _logger.LogWarning($"Failed to start ffmpeg for video snapshot - '{videoPath}'");
+                        return false;
+                    }
+
+                    var stderr = await process.StandardError.ReadToEndAsync();
+                    await process.WaitForExitAsync();
+
+                    if (process.ExitCode != 0 || !_fileHelper.FileExists(savePath))
+                    {
+                        _logger.LogWarning($"ffmpeg failed to snapshot video - '{videoPath}' (exit {process.ExitCode}): {stderr}");
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to snapshot video - '{videoPath}'");
+                return false;
+            }
         }
 
         public MediaType GetMediaType(string path)
@@ -206,6 +269,7 @@ namespace Memtly.Core.Helpers
                 }
 
                 FFmpeg.SetExecutablesPath(path);
+                FfmpegDirectory = path;
                 FfmpegInstalled = true;
 
                 return true;
